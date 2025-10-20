@@ -1,0 +1,107 @@
+---
+title: "TPT Analysis"
+author: "Ryan Parks"
+date: "2025-10-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Loading libraries
+```{r, echo=FALSE}
+library('dplyr')
+library('janitor')
+#Library used to load a specific sheet from a xlsv file
+library('readxl')
+library('ggplot2')
+library('tidyr')
+```
+
+Loading data
+```{r}
+#load in data sheet
+Average_TPT <- read_excel("C:/Users/ryans/Downloads/Copy of Average TPT Report October 13 2025 (002).xlsx",
+                          sheet = "Week to Week ", range = "A4:BR464")
+
+#creating a single csv to be used for practice with SQL
+write_csv(Average_TPT, "C:/Users/ryans/Documents/TPT Project/Copy of Average TPT.csv")
+```
+
+```{r}
+#Average_TPT
+#remove all the monthly averages
+Average_TPT <- Average_TPT %>%
+  select(-c("Pd 1", "Pd 2", "Pd 3", "Pd 4", "Pd 5", "Pd 6", "Pd 7", "Pd 8", "Pd 9", "Pd 10", "Pd 11", "Pd 12"))
+
+#remove empty columns. Each week a new column is filled in
+Average_TPT <- Average_TPT %>%
+  remove_empty(which = "cols")
+
+#correcting col names
+for (i in 7:ncol(Average_TPT)) {
+  names(Average_TPT)[i] <- paste("Week", i-6)
+}
+head(Average_TPT)
+
+#Checking for number of NA rows
+Average_TPT %>% complete.cases() %>%
+  table()
+```
+
+There are enough complete observations to just delete rows containing NA's for now. 
+May be adjusted in the future if deemed appropriate.
+
+```{r}
+Average_TPT_Cleaned <- Average_TPT %>% na.omit()
+```
+
+Make a "Tidy" version of the data where every row is a distinct observation
+```{r}
+Average_TPT_Tidy <- Average_TPT_Cleaned %>%
+  gather(-c('Region', 'RT', 'DT', 'DM', `Site name`, `Site Code`), key='Week', value='TPT') %>%
+    separate(Week, c(NA, 'Week'), sep=' ') %>%
+      mutate(Week = as.numeric(Week))
+head(Average_TPT_Tidy)
+```
+
+Some exploratory analysis on the weekly TPT
+```{r}
+#Company-wide aggregates
+weekly_tpt_avgs <- Average_TPT_Tidy %>%
+  group_by(Week) %>%
+    summarize(weekly_avg = mean(TPT), weekly_min = min(TPT), weekly_max = max(TPT))
+weekly_tpt_avgs
+
+
+#grouping by region
+weekly_tpt_avgs <- Average_TPT_Tidy %>%
+  group_by(Region) %>%
+    summarize(weekly_avg = mean(TPT), weekly_min = min(TPT), weekly_max = max(TPT)) %>%
+      arrange(desc(weekly_avg))
+weekly_tpt_avgs
+
+#grouping by region and week
+weekly_tpt_avgs <- Average_TPT_Tidy %>%
+  group_by(Week, Region) %>%
+    summarize(weekly_avg = mean(TPT), weekly_min = min(TPT), weekly_max = max(TPT)) %>%
+      arrange(desc(weekly_avg))
+weekly_tpt_avgs
+```
+
+
+```{r}
+viz <- ggplot(data=Average_TPT_Cleaned, aes(x=`Site Code`, y=`Week 1`)) +
+  geom_point(aes(color=`Week 1`)) +
+  geom_hline(aes(yintercept=3, linetype="3.0")) +
+  labs(title = 'Week 1 TPT', subtitle = 'compaired against 3.0 goal', color = 'TPT', linetype="Goal TPT")
+viz
+```
+
+
+```{r, include=FALSE}
+#How you can save an image as a local file
+ggsave("viz-axample.png")
+```
+
