@@ -7,6 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "C:\\Users\\ryans\\Documents\\TPT Project")
 ```
 
 Loading libraries
@@ -24,10 +25,8 @@ Loading data
 #load in data sheet
 Average_TPT <- read_excel("C:/Users/ryans/Downloads/Copy of Average TPT Report October 13 2025 (002).xlsx",
                           sheet = "Week to Week ", range = "A4:BR464")
-
-#creating a single csv to be used for practice with SQL
-write_csv(Average_TPT, "C:/Users/ryans/Documents/TPT Project/Copy of Average TPT.csv")
 ```
+
 
 ```{r}
 #Average_TPT
@@ -38,6 +37,9 @@ Average_TPT <- Average_TPT %>%
 #remove empty columns. Each week a new column is filled in
 Average_TPT <- Average_TPT %>%
   remove_empty(which = "cols")
+
+#second copy of data to be sent off for practice with python and SQL
+Average_TPT2 <- Average_TPT %>% na.omit()
 
 #correcting col names
 for (i in 7:ncol(Average_TPT)) {
@@ -55,6 +57,11 @@ May be adjusted in the future if deemed appropriate.
 
 ```{r}
 Average_TPT_Cleaned <- Average_TPT %>% na.omit()
+```
+
+Creating a single csv to be used for practice with SQL and Python
+```{r, eval=FALSE}
+write.csv(Average_TPT2, "C:/Users/ryans/Documents/TPT Project/Copy of Average TPT.csv")
 ```
 
 Make a "Tidy" version of the data where every row is a distinct observation
@@ -94,13 +101,14 @@ weekly_tpt_avgs
 ```{r}
 viz <- ggplot(data=Average_TPT_Cleaned, aes(x=`Site Code`, y=`Week 1`)) +
   geom_point(aes(color=`Week 1`)) +
-  geom_hline(aes(yintercept=3, linetype="3.0")) +
+  scale_color_gradient2(low="black", mid="purple", high="red", midpoint=3) +
+  geom_hline(aes(yintercept=3, linetype="3.0"), linetype="dashed") +
   labs(title = 'Week 1 TPT', subtitle = 'compaired against 3.0 goal', color = 'TPT', linetype="Goal TPT")
 viz
 ```
 
 
-```{r, include=FALSE}
+```{r, include=FALSE, eval=FALSE}
 #How you can save an image as a local file
 ggsave("viz-axample.png")
 ```
